@@ -26,4 +26,3 @@ verify-*.js
 
 # Claude
 .claude/
-create-standalone.js
