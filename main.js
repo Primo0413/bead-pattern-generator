@@ -12,7 +12,7 @@ import * as statistics from './js/statistics.js';
 import { exportPdf } from './js/pdfExport.js';
 
 /** @type {'design' | 'convert'} */
-let currentMode = 'design';
+let currentMode = 'convert';
 
 /** @type {ImageBitmap | null} */
 let currentImageBitmap = null;
@@ -40,8 +40,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindCanvasControls();
     bindHeaderActions();
 
-    // 创建默认空白画布
+    // 创建默认空白画布，并默认进入转换模式
     createNewCanvas(64, 64);
+    setMode('convert');
 
     showToast('应用初始化完成', 'success');
   } catch (err) {
