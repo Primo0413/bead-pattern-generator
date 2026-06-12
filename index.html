@@ -187,8 +187,17 @@
             <input id="file-image" type="file" accept="image/png,image/jpeg,image/bmp,image/webp" hidden />
             <div id="image-preview" class="image-preview hidden"></div>
             <div class="form-group">
-              <label for="input-target-width">目标宽度（格）</label>
-              <input id="input-target-width" type="number" min="8" max="512" value="96" />
+              <label for="input-canvas-width">画板宽度（格）</label>
+              <input id="input-canvas-width" type="number" min="8" max="512" value="96" />
+            </div>
+            <div class="form-group">
+              <label for="input-canvas-height">画板高度（格）</label>
+              <input id="input-canvas-height" type="number" min="8" max="512" value="96" />
+            </div>
+            <div class="form-group">
+              <label for="input-image-scale">图片缩放（%）</label>
+              <input id="input-image-scale" type="range" min="10" max="400" value="100" />
+              <span id="image-scale-value">100%</span>
             </div>
             <div class="form-group checkbox">
               <input id="chk-dithering" type="checkbox" checked />

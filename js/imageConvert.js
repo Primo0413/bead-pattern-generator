@@ -53,6 +53,104 @@ export function scaleImage(bitmap, targetWidth) {
 }
 
 /**
+ * 将 ImageBitmap 缩放到指定宽高，返回 ImageData。
+ * 使用最近邻插值保持像素感。
+ * @param {ImageBitmap} bitmap
+ * @param {number} targetWidth
+ * @param {number} targetHeight
+ * @returns {ImageData}
+ */
+function scaleImageToSize(bitmap, targetWidth, targetHeight) {
+  const width = Math.max(1, Math.round(targetWidth));
+  const height = Math.max(1, Math.round(targetHeight));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) {
+    throw new Error('无法创建 canvas 上下文');
+  }
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(bitmap, 0, 0, width, height);
+
+  return ctx.getImageData(0, 0, width, height);
+}
+
+/**
+ * 计算图片在画板上的默认缩放比例，使图片长或宽先占满画板的 80%。
+ * @param {ImageBitmap} bitmap
+ * @param {number} canvasWidth
+ * @param {number} canvasHeight
+ * @returns {number} 基础缩放比例（格 / 像素）
+ */
+export function calculateDefaultImageScale(bitmap, canvasWidth, canvasHeight) {
+  if (!canvasWidth || !canvasHeight || !bitmap.width || !bitmap.height) return 0;
+  const maxDisplayWidth = canvasWidth * 0.8;
+  const maxDisplayHeight = canvasHeight * 0.8;
+  return Math.min(
+    maxDisplayWidth / bitmap.width,
+    maxDisplayHeight / bitmap.height
+  );
+}
+
+/**
+ * 将图片按指定缩放居中放置到固定尺寸画板上，返回像素索引数组。
+ * @param {ImageBitmap} bitmap
+ * @param {number} canvasWidth 画板宽度（格）
+ * @param {number} canvasHeight 画板高度（格）
+ * @param {number} imageScale 相对于默认大小的缩放比例
+ * @param {PaletteEntry[]} palette
+ * @param {boolean} useDithering
+ * @returns {Int16Array}
+ */
+export function convertImageToCanvas(bitmap, canvasWidth, canvasHeight, imageScale, palette, useDithering) {
+  if (canvasWidth < 1 || canvasHeight < 1) {
+    throw new Error('画板尺寸必须大于 0');
+  }
+
+  const baseScale = calculateDefaultImageScale(bitmap, canvasWidth, canvasHeight);
+  const finalScale = baseScale * imageScale;
+
+  // 图片在画板上的显示尺寸（格）
+  const displayWidth = bitmap.width * finalScale;
+  const displayHeight = bitmap.height * finalScale;
+
+  // 居中偏移（格）
+  const offsetX = (canvasWidth - displayWidth) / 2;
+  const offsetY = (canvasHeight - displayHeight) / 2;
+
+  // 缩放图片到显示尺寸
+  const imageData = scaleImageToSize(bitmap, displayWidth, displayHeight);
+
+  // 创建画板大小的结果数组，初始透明
+  const result = new Int16Array(canvasWidth * canvasHeight).fill(-1);
+
+  // 将缩放后的图片像素映射到画板对应位置
+  const pixelData = convertToPixelData(imageData, palette, useDithering);
+  const imgW = imageData.width;
+  const imgH = imageData.height;
+
+  for (let y = 0; y < imgH; y++) {
+    const canvasY = Math.floor(offsetY + y);
+    if (canvasY < 0 || canvasY >= canvasHeight) continue;
+
+    for (let x = 0; x < imgW; x++) {
+      const canvasX = Math.floor(offsetX + x);
+      if (canvasX < 0 || canvasX >= canvasWidth) continue;
+
+      const imgIdx = y * imgW + x;
+      const canvasIdx = canvasY * canvasWidth + canvasX;
+      result[canvasIdx] = pixelData[imgIdx];
+    }
+  }
+
+  return result;
+}
+
+/**
  * 将缩放后的 ImageData 匹配到色号库，可选 Floyd-Steinberg 抖动。
  * @param {ImageData} imageData
  * @param {PaletteEntry[]} palette

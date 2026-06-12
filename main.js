@@ -228,6 +228,10 @@ function bindConvertControls() {
   const fileImage = document.getElementById('file-image');
   const btnConvert = document.getElementById('btn-convert');
   const preview = document.getElementById('image-preview');
+  const inputCanvasWidth = /** @type {HTMLInputElement} */ (document.getElementById('input-canvas-width'));
+  const inputCanvasHeight = /** @type {HTMLInputElement} */ (document.getElementById('input-canvas-height'));
+  const inputImageScale = /** @type {HTMLInputElement} */ (document.getElementById('input-image-scale'));
+  const scaleValue = document.getElementById('image-scale-value');
 
   btnUploadImage?.addEventListener('click', () => fileImage?.click());
 
@@ -245,9 +249,35 @@ function bindConvertControls() {
         preview.classList.remove('hidden');
       }
 
+      // 根据当前画板尺寸计算默认缩放
+      const canvasWidth = Number(inputCanvasWidth?.value) || 96;
+      const canvasHeight = Number(inputCanvasHeight?.value) || 96;
+      state.setImageLayer({
+        bitmap: currentImageBitmap,
+        scale: 1.0,
+        offsetX: 0,
+        offsetY: 0
+      });
+
+      // 重置缩放滑块到 100%
+      if (inputImageScale) inputImageScale.value = '100';
+      if (scaleValue) scaleValue.textContent = '100%';
+
       showToast('图片已加载，可点击生成', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '加载图片失败', 'error');
+    } finally {
+      target.value = '';
+    }
+  });
+
+  inputImageScale?.addEventListener('input', () => {
+    const scale = Number(inputImageScale.value) / 100;
+    if (scaleValue) scaleValue.textContent = `${Math.round(scale * 100)}%`;
+
+    const layer = state.getImageLayer();
+    if (layer) {
+      layer.scale = scale;
     }
   });
 
@@ -260,15 +290,29 @@ function bindConvertControls() {
     try {
       showToast('正在转换...', 'success');
       const palette = getPalette();
-      const targetWidth = Number(document.getElementById('input-target-width')?.value) || 96;
+      const canvasWidth = Number(inputCanvasWidth?.value) || 96;
+      const canvasHeight = Number(inputCanvasHeight?.value) || 96;
+      const imageScale = Number(inputImageScale?.value) / 100 || 1.0;
       const useDithering = /** @type {HTMLInputElement} */ (document.getElementById('chk-dithering'))?.checked ?? true;
 
-      const imageData = imageConvert.scaleImage(currentImageBitmap, targetWidth);
-      const pixels = imageConvert.convertToPixelData(imageData, palette, useDithering);
+      const pixels = imageConvert.convertImageToCanvas(
+        currentImageBitmap,
+        canvasWidth,
+        canvasHeight,
+        imageScale,
+        palette,
+        useDithering
+      );
 
-      const project = state.createBlankProject(imageData.width, imageData.height, palette, 'converted');
+      const project = state.createBlankProject(canvasWidth, canvasHeight, palette, 'converted');
       state.setProject(project);
       state.replacePixels(pixels);
+      state.setImageLayer({
+        bitmap: currentImageBitmap,
+        scale: imageScale,
+        offsetX: 0,
+        offsetY: 0
+      });
       renderer.render(project);
       statistics.renderStatistics();
       updateCanvasInfo();

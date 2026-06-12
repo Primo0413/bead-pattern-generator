@@ -6,6 +6,14 @@
 /** @typedef {import('./palette.js').PaletteEntry} PaletteEntry */
 
 /**
+ * @typedef {Object} ImageLayer
+ * @property {ImageBitmap} bitmap 原始图片位图
+ * @property {number} scale 相对于默认大小的缩放比例，1.0 表示默认 fit 80%
+ * @property {number} offsetX 图片在画板中的水平偏移（格）
+ * @property {number} offsetY 图片在画板中的垂直偏移（格）
+ */
+
+/**
  * @typedef {Object} PixelProject
  * @property {number} schemaVersion 数据格式版本
  * @property {string} name 项目名称
@@ -14,6 +22,7 @@
  * @property {number} cellSize 显示单格尺寸
  * @property {Int16Array} pixels 扁平化像素数据，-1 表示透明
  * @property {PaletteEntry[]} palette 色号库引用
+ * @property {ImageLayer | null} imageLayer 图片图层（不参与序列化）
  */
 
 /**
@@ -60,7 +69,8 @@ export function createBlankProject(width, height, palette, name = '未命名') {
     height,
     cellSize: 20,
     pixels: new Int16Array(width * height).fill(-1),
-    palette
+    palette,
+    imageLayer: null
   };
 }
 
@@ -98,7 +108,8 @@ export function loadProject(data, palette) {
     height,
     cellSize: Number(data.cellSize) || 20,
     pixels,
-    palette
+    palette,
+    imageLayer: null
   };
 }
 
@@ -136,6 +147,24 @@ export function getProject() {
 export function setProject(project) {
   currentProject = project;
   clearHistory();
+}
+
+/**
+ * 获取当前项目的图片图层。
+ * @returns {ImageLayer | null}
+ */
+export function getImageLayer() {
+  return currentProject ? currentProject.imageLayer : null;
+}
+
+/**
+ * 设置当前项目的图片图层。
+ * @param {ImageLayer | null} imageLayer
+ */
+export function setImageLayer(imageLayer) {
+  if (currentProject) {
+    currentProject.imageLayer = imageLayer;
+  }
 }
 
 /**
